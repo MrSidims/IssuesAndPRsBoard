@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLVM Issues Viewer - AMDGPU & SPIR-V</title>
+    <style>
+        :root {
+            /* Dark theme (default) */
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-link: #58a6ff;
+            --accent-green: #238636;
+            --accent-green-text: white;
+            --icon-green: #3fb950;
+            --error-bg: #490202;
+            --error-border: #f85149;
+            --error-text: #f85149;
+            --spinner-bg: #30363d;
+            --interesting-bg: #1c3a2d;
+            --interesting-border: #238636;
+            --not-interesting-opacity: 0.4;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f0f0;
+            --border-color: #d0d7de;
+            --text-primary: #1f2328;
+            --text-secondary: #656d76;
+            --text-link: #0969da;
+            --accent-green: #1a7f37;
+            --accent-green-text: white;
+            --icon-green: #1a7f37;
+            --error-bg: #ffebe9;
+            --error-border: #ff8182;
+            --error-text: #cf222e;
+            --spinner-bg: #d0d7de;
+            --interesting-bg: #dafbe1;
+            --interesting-border: #1a7f37;
+            --not-interesting-opacity: 0.45;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-link);
+            font-size: 2em;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            right: 0;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--border-color);
+        }
+
+        .theme-toggle svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: var(--border-color);
+        }
+
+        .tab-btn.active {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: var(--accent-green-text);
+        }
+
+        .tab-content {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--spinner-bg);
+            border-top: 3px solid var(--text-link);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .count {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .count strong {
+            color: var(--text-link);
+        }
+
+        .issue-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .issue-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            transition: all 0.3s;
+        }
+
+        .issue-card:hover {
+            border-color: var(--text-link);
+        }
+
+        /* Interesting state */
+        .issue-card.interesting {
+            background: var(--interesting-bg);
+            border-color: var(--interesting-border);
+            border-width: 2px;
+        }
+
+        /* Not interesting state */
+        .issue-card.not-interesting {
+            opacity: var(--not-interesting-opacity);
+        }
+
+        .issue-card.not-interesting:hover {
+            opacity: 0.7;
+        }
+
+        .issue-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .issue-icon {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-top: 4px;
+        }
+
+        .issue-icon.open,
+        .issue-icon.pr {
+            color: var(--icon-green);
+        }
+
+        .issue-title {
+            flex: 1;
+        }
+
+        .issue-title a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .issue-title a:hover {
+            color: var(--text-link);
+        }
+
+        .issue-number {
+            color: var(--text-secondary);
+            font-weight: normal;
+        }
+
+        /* Flag buttons container */
+        .flag-buttons {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+
+        .flag-btn {
+            padding: 4px 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .flag-btn:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .flag-btn.active-interesting {
+            background: #238636;
+            border-color: #238636;
+            color: white;
+        }
+
+        .flag-btn.active-not-interesting {
+            background: #6e7681;
+            border-color: #6e7681;
+            color: white;
+        }
+
+        .flag-btn svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .issue-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .label {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .error {
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: var(--error-text);
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .refresh-btn {
+            display: block;
+            margin: 0 auto 20px;
+            padding: 10px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--border-color);
+        }
+
+        .info {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: background-color 0.3s;
+        }
+
+        .info strong {
+            color: var(--text-primary);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: var(--border-color);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .page-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .pagination .page-info strong {
+            color: var(--text-link);
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .theme-toggle {
+                position: static;
+            }
+            .flag-buttons {
+                flex-direction: column;
+                gap: 4px;
+            }
+            .flag-btn {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LLVM Issues & PRs Viewer</h1>
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle">
+            <svg id="theme-icon-dark" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.061 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z"></path>
+            </svg>
+            <svg id="theme-icon-light" viewBox="0 0 16 16" fill="currentColor" style="display: none;">
+                <path fill-rule="evenodd" d="M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z"></path>
+            </svg>
+            <span id="theme-label">Light</span>
+        </button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="amd-issues">AMDGPU Issues</button>
+        <button class="tab-btn" data-tab="spirv-issues">SPIR-V Issues</button>
+        <button class="tab-btn" data-tab="amd-prs">AMDGPU PRs</button>
+        <button class="tab-btn" data-tab="spirv-prs">SPIR-V PRs</button>
+    </div>
+
+    <div id="amd-issues" class="tab-content active">
+        <div class="info">
+            <strong>AMDGPU Issues:</strong> Open issues containing AMDGPU or AMDGCN in title or labels.
+        </div>
+        <button class="refresh-btn" onclick="loadAMDIssues(1)">Refresh</button>
+        <div id="amd-issues-content">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading AMDGPU issues...
+            </div>
+        </div>
+    </div>
+
+    <div id="spirv-issues" class="tab-content">
+        <div class="info">
+            <strong>SPIR-V Issues:</strong> Open issues containing SPIR-V or SPIRV in title or labels.
+        </div>
+        <button class="refresh-btn" onclick="loadSPIRVIssues(1)">Refresh</button>
+        <div id="spirv-issues-content">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading SPIR-V issues...
+            </div>
+        </div>
+    </div>
+
+    <div id="amd-prs" class="tab-content">
+        <div class="info">
+            <strong>AMDGPU Pull Requests:</strong> Open PRs containing AMDGPU or AMDGCN in title or labels.
+        </div>
+        <button class="refresh-btn" onclick="loadAMDPRs(1)">Refresh</button>
+        <div id="amd-prs-content">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading AMDGPU pull requests...
+            </div>
+        </div>
+    </div>
+
+    <div id="spirv-prs" class="tab-content">
+        <div class="info">
+            <strong>SPIR-V Pull Requests:</strong> Open PRs containing SPIR-V or SPIRV in title or labels.
+        </div>
+        <button class="refresh-btn" onclick="loadSPIRVPRs(1)">Refresh</button>
+        <div id="spirv-prs-content">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading SPIR-V pull requests...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Local Storage for Flags ====================
+        const STORAGE_KEY = 'llvm-issues-flags';
+
+        function getFlags() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                return stored ? JSON.parse(stored) : {};
+            } catch (e) {
+                console.error('Error reading flags from localStorage:', e);
+                return {};
+            }
+        }
+
+        function saveFlags(flags) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(flags));
+            } catch (e) {
+                console.error('Error saving flags to localStorage:', e);
+            }
+        }
+
+        function getItemFlag(itemNumber) {
+            const flags = getFlags();
+            return flags[itemNumber] || null; // null, 'interesting', or 'not-interesting'
+        }
+
+        function setItemFlag(itemNumber, flag) {
+            const flags = getFlags();
+            if (flag === null) {
+                delete flags[itemNumber];
+            } else {
+                flags[itemNumber] = flag;
+            }
+            saveFlags(flags);
+            updateCardVisual(itemNumber, flag);
+        }
+
+        function toggleFlag(itemNumber, flagType) {
+            const currentFlag = getItemFlag(itemNumber);
+            if (currentFlag === flagType) {
+                // Toggle off
+                setItemFlag(itemNumber, null);
+            } else {
+                // Set new flag
+                setItemFlag(itemNumber, flagType);
+            }
+        }
+
+        function updateCardVisual(itemNumber, flag) {
+            const card = document.querySelector(`[data-item-number="${itemNumber}"]`);
+            if (!card) return;
+
+            card.classList.remove('interesting', 'not-interesting');
+            if (flag === 'interesting') {
+                card.classList.add('interesting');
+            } else if (flag === 'not-interesting') {
+                card.classList.add('not-interesting');
+            }
+
+            // Update button states
+            const interestingBtn = card.querySelector('.flag-btn-interesting');
+            const notInterestingBtn = card.querySelector('.flag-btn-not-interesting');
+
+            if (interestingBtn) {
+                interestingBtn.classList.toggle('active-interesting', flag === 'interesting');
+            }
+            if (notInterestingBtn) {
+                notInterestingBtn.classList.toggle('active-not-interesting', flag === 'not-interesting');
+            }
+        }
+
+        // ==================== Theme handling ====================
+        function getPreferredTheme() {
+            const stored = localStorage.getItem('theme');
+            if (stored) return stored;
+            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            updateThemeButton(theme);
+        }
+
+        function updateThemeButton(theme) {
+            const darkIcon = document.getElementById('theme-icon-dark');
+            const lightIcon = document.getElementById('theme-icon-light');
+            const label = document.getElementById('theme-label');
+
+            if (theme === 'dark') {
+                darkIcon.style.display = 'block';
+                lightIcon.style.display = 'none';
+                label.textContent = 'Light';
+            } else {
+                darkIcon.style.display = 'none';
+                lightIcon.style.display = 'block';
+                label.textContent = 'Dark';
+            }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            setTheme(next);
+        }
+
+        // Initialize theme
+        setTheme(getPreferredTheme());
+
+        // ==================== Tab switching ====================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ==================== SVG icons ====================
+        const issueIcon = `<svg class="issue-icon open" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path>
+            <path fill-rule="evenodd" d="M8 0a8 8 0 100 16A8 8 0 008 0zM1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0z"></path>
+        </svg>`;
+
+        const prIcon = `<svg class="issue-icon pr" viewBox="0 0 16 16" fill="currentColor">
+            <path fill-rule="evenodd" d="M7.177 3.073L9.573.677A.25.25 0 0110 .854v4.792a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM11 2.5h-1V4h1a1 1 0 011 1v5.628a2.251 2.251 0 101.5 0V5A2.5 2.5 0 0011 2.5zm1 10.25a.75.75 0 111.5 0 .75.75 0 01-1.5 0zM3.75 12a.75.75 0 100 1.5.75.75 0 000-1.5z"></path>
+        </svg>`;
+
+        const starIcon = `<svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"></path>
+        </svg>`;
+
+        const xIcon = `<svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path>
+        </svg>`;
+
+        // ==================== Utility functions ====================
+        function getContrastColor(hexcolor) {
+            const r = parseInt(hexcolor.substr(0, 2), 16);
+            const g = parseInt(hexcolor.substr(2, 2), 16);
+            const b = parseInt(hexcolor.substr(4, 2), 16);
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 128) ? '#000000' : '#ffffff';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== Rendering ====================
+        function renderItems(data, containerId, isPR, loadFunction) {
+            const container = document.getElementById(containerId);
+            const items = data.items;
+            const totalCount = data.total_count;
+            const currentPage = data.page;
+            const totalPages = data.total_pages;
+
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div class="loading">No items found.</div>';
+                return;
+            }
+
+            const icon = isPR ? prIcon : issueIcon;
+            const itemType = isPR ? 'pull requests' : 'issues';
+            const startItem = (currentPage - 1) * 100 + 1;
+            const endItem = Math.min(currentPage * 100, totalCount);
+
+            let html = `<div class="count">Showing <strong>${startItem}-${endItem}</strong> of <strong>${totalCount}</strong> ${itemType}</div>`;
+            html += '<div class="issue-list">';
+
+            items.forEach(item => {
+                const labels = item.labels.map(label =>
+                    `<span class="label" style="background-color: #${label.color}; color: ${getContrastColor(label.color)}">${escapeHtml(label.name)}</span>`
+                ).join('');
+
+                const date = new Date(item.updated_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+
+                const currentFlag = getItemFlag(item.number);
+                const cardClass = currentFlag === 'interesting' ? 'interesting' :
+                                  currentFlag === 'not-interesting' ? 'not-interesting' : '';
+                const interestingActive = currentFlag === 'interesting' ? 'active-interesting' : '';
+                const notInterestingActive = currentFlag === 'not-interesting' ? 'active-not-interesting' : '';
+
+                html += `
+                    <div class="issue-card ${cardClass}" data-item-number="${item.number}">
+                        <div class="issue-header">
+                            ${icon}
+                            <div class="issue-title">
+                                <a href="${item.html_url}" target="_blank" rel="noopener noreferrer">
+                                    ${escapeHtml(item.title)}
+                                    <span class="issue-number">#${item.number}</span>
+                                </a>
+                            </div>
+                            <div class="flag-buttons">
+                                <button class="flag-btn flag-btn-interesting ${interestingActive}"
+                                        onclick="toggleFlag(${item.number}, 'interesting')"
+                                        title="Mark as interesting">
+                                    ${starIcon}
+                                    <span>Interesting</span>
+                                </button>
+                                <button class="flag-btn flag-btn-not-interesting ${notInterestingActive}"
+                                        onclick="toggleFlag(${item.number}, 'not-interesting')"
+                                        title="Mark as not interesting">
+                                    ${xIcon}
+                                    <span>Not Interesting</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="issue-meta">
+                            <span>Updated: ${date}</span>
+                            ${item.user ? `<span>by ${escapeHtml(item.user.login)}</span>` : ''}
+                            ${labels ? `<div class="labels">${labels}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+
+            // Add pagination if more than one page
+            if (totalPages > 1) {
+                html += `
+                    <div class="pagination">
+                        <button onclick="${loadFunction}(1)" ${currentPage === 1 ? 'disabled' : ''}>First</button>
+                        <button onclick="${loadFunction}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                        <span class="page-info">Page <strong>${currentPage}</strong> of <strong>${totalPages}</strong></span>
+                        <button onclick="${loadFunction}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+                        <button onclick="${loadFunction}(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>Last</button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function showError(containerId, message) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${escapeHtml(message)}
+                    <br><br>
+                    Note: GitHub API has rate limits. Try again in a few minutes.
+                </div>
+            `;
+        }
+
+        // ==================== Data loading functions ====================
+        async function loadAMDIssues(page = 1) {
+            const container = document.getElementById('amd-issues-content');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading AMDGPU issues...</div>';
+
+            try {
+                const response = await fetch(`/api/amd-issues?page=${page}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    showError('amd-issues-content', data.error);
+                    return;
+                }
+
+                renderItems(data, 'amd-issues-content', false, 'loadAMDIssues');
+            } catch (error) {
+                showError('amd-issues-content', error.message);
+            }
+        }
+
+        async function loadSPIRVIssues(page = 1) {
+            const container = document.getElementById('spirv-issues-content');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading SPIR-V issues...</div>';
+
+            try {
+                const response = await fetch(`/api/spirv-issues?page=${page}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    showError('spirv-issues-content', data.error);
+                    return;
+                }
+
+                renderItems(data, 'spirv-issues-content', false, 'loadSPIRVIssues');
+            } catch (error) {
+                showError('spirv-issues-content', error.message);
+            }
+        }
+
+        async function loadAMDPRs(page = 1) {
+            const container = document.getElementById('amd-prs-content');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading AMDGPU pull requests...</div>';
+
+            try {
+                const response = await fetch(`/api/amd-prs?page=${page}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    showError('amd-prs-content', data.error);
+                    return;
+                }
+
+                renderItems(data, 'amd-prs-content', true, 'loadAMDPRs');
+            } catch (error) {
+                showError('amd-prs-content', error.message);
+            }
+        }
+
+        async function loadSPIRVPRs(page = 1) {
+            const container = document.getElementById('spirv-prs-content');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading SPIR-V pull requests...</div>';
+
+            try {
+                const response = await fetch(`/api/spirv-prs?page=${page}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    showError('spirv-prs-content', data.error);
+                    return;
+                }
+
+                renderItems(data, 'spirv-prs-content', true, 'loadSPIRVPRs');
+            } catch (error) {
+                showError('spirv-prs-content', error.message);
+            }
+        }
+
+        // Load initial data
+        loadAMDIssues();
+        loadSPIRVIssues();
+        loadAMDPRs();
+        loadSPIRVPRs();
+    </script>
+</body>
+</html>
