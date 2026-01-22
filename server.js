@@ -1,15 +1,30 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = 3000;
+
+// Load configuration
+const CONFIG_PATH = path.join(__dirname, 'config.json');
+
+function loadConfig() {
+    try {
+        const configData = fs.readFileSync(CONFIG_PATH, 'utf8');
+        return JSON.parse(configData);
+    } catch (error) {
+        console.error('Error loading config:', error);
+        return { tabs: [] };
+    }
+}
+
+let config = loadConfig();
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
 // GitHub API base URL
 const GITHUB_API = 'https://api.github.com';
-const REPO = 'llvm/llvm-project';
 
 // Helper function to fetch from GitHub API
 async function fetchGitHub(url) {
@@ -27,74 +42,90 @@ async function fetchGitHub(url) {
     return response.json();
 }
 
-// API endpoint for AMDGPU/AMDGCN issues
-app.get('/api/amd-issues', async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1;
-        // Search for issues with AMDGPU or AMDGCN in title or labels
-        const query = encodeURIComponent(`repo:${REPO} is:issue is:open (AMDGPU OR AMDGCN)`);
-        const url = `${GITHUB_API}/search/issues?q=${query}&per_page=100&page=${page}&sort=updated&order=desc`;
+// Build search query from tab configuration
+function buildSearchQuery(tab) {
+    const typeFilter = tab.type === 'prs' ? 'is:pr' : 'is:issue';
+    let query = `repo:${tab.repo} ${typeFilter} is:open`;
 
-        const data = await fetchGitHub(url);
-        data.page = page;
-        data.total_pages = Math.ceil(data.total_count / 100);
-        res.json(data);
-    } catch (error) {
-        console.error('Error fetching AMD issues:', error);
-        res.status(500).json({ error: error.message });
+    // Add keywords (include filter)
+    if (tab.keywords && tab.keywords.length > 0) {
+        const keywordQuery = tab.keywords.map(k => k).join(' OR ');
+        query += ` (${keywordQuery})`;
     }
+
+    return query;
+}
+
+// Filter results based on blacklist (case-insensitive)
+function filterBlacklist(items, blacklist) {
+    if (!blacklist || blacklist.length === 0) {
+        return items;
+    }
+
+    const blacklistLower = blacklist.map(term => term.toLowerCase());
+
+    return items.filter(item => {
+        // Check title
+        const titleLower = (item.title || '').toLowerCase();
+        for (const term of blacklistLower) {
+            if (titleLower.includes(term)) {
+                return false;
+            }
+        }
+
+        // Check labels
+        if (item.labels && item.labels.length > 0) {
+            for (const label of item.labels) {
+                const labelNameLower = (label.name || '').toLowerCase();
+                for (const term of blacklistLower) {
+                    if (labelNameLower.includes(term)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    });
+}
+
+// API endpoint to get configuration
+app.get('/api/config', (req, res) => {
+    // Reload config on each request to pick up changes
+    config = loadConfig();
+    res.json(config);
 });
 
-// API endpoint for SPIR-V/SPIRV issues
-app.get('/api/spirv-issues', async (req, res) => {
+// Dynamic API endpoint for fetching issues/PRs based on tab ID
+app.get('/api/tab/:tabId', async (req, res) => {
     try {
+        const tabId = req.params.tabId;
         const page = parseInt(req.query.page) || 1;
-        // Search for issues with SPIR-V or SPIRV in title or labels
-        const query = encodeURIComponent(`repo:${REPO} is:issue is:open (SPIR-V OR SPIRV)`);
+
+        // Find the tab configuration
+        const tab = config.tabs.find(t => t.id === tabId);
+        if (!tab) {
+            return res.status(404).json({ error: `Tab '${tabId}' not found in configuration` });
+        }
+
+        const query = encodeURIComponent(buildSearchQuery(tab));
         const url = `${GITHUB_API}/search/issues?q=${query}&per_page=100&page=${page}&sort=updated&order=desc`;
 
         const data = await fetchGitHub(url);
+
+        // Apply blacklist filter (use tab-specific if defined, otherwise global)
+        const blacklist = tab.blacklist !== undefined ? tab.blacklist : (config.blacklist || []);
+        if (blacklist.length > 0) {
+            const originalCount = data.items.length;
+            data.items = filterBlacklist(data.items, blacklist);
+            data.filtered_count = originalCount - data.items.length;
+        }
+
         data.page = page;
         data.total_pages = Math.ceil(data.total_count / 100);
         res.json(data);
     } catch (error) {
-        console.error('Error fetching SPIRV issues:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// API endpoint for AMDGPU/AMDGCN PRs
-app.get('/api/amd-prs', async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1;
-        // Search for PRs with AMDGPU or AMDGCN
-        const query = encodeURIComponent(`repo:${REPO} is:pr is:open (AMDGPU OR AMDGCN)`);
-        const url = `${GITHUB_API}/search/issues?q=${query}&per_page=100&page=${page}&sort=updated&order=desc`;
-
-        const data = await fetchGitHub(url);
-        data.page = page;
-        data.total_pages = Math.ceil(data.total_count / 100);
-        res.json(data);
-    } catch (error) {
-        console.error('Error fetching AMD PRs:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// API endpoint for SPIR-V/SPIRV PRs
-app.get('/api/spirv-prs', async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1;
-        // Search for PRs with SPIR-V or SPIRV
-        const query = encodeURIComponent(`repo:${REPO} is:pr is:open (SPIR-V OR SPIRV)`);
-        const url = `${GITHUB_API}/search/issues?q=${query}&per_page=100&page=${page}&sort=updated&order=desc`;
-
-        const data = await fetchGitHub(url);
-        data.page = page;
-        data.total_pages = Math.ceil(data.total_count / 100);
-        res.json(data);
-    } catch (error) {
-        console.error('Error fetching SPIRV PRs:', error);
+        console.error(`Error fetching data for tab ${req.params.tabId}:`, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -102,5 +133,10 @@ app.get('/api/spirv-prs', async (req, res) => {
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Configuration loaded from: ${CONFIG_PATH}`);
+    console.log(`Tabs configured: ${config.tabs.map(t => t.label).join(', ')}`);
+    if (config.blacklist && config.blacklist.length > 0) {
+        console.log(`Global blacklist: ${config.blacklist.join(', ')}`);
+    }
     console.log('Press Ctrl+C to stop');
 });

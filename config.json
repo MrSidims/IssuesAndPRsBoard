@@ -1,0 +1,73 @@
+{
+  "_documentation": {
+    "description": "Configuration file for LLVM Issues Viewer",
+    "tabs_format": {
+      "id": "Unique identifier for the tab (used in URLs and CSS)",
+      "label": "Display name shown on the tab button",
+      "repo": "GitHub repository in 'owner/repo' format",
+      "type": "Either 'issues' or 'prs'",
+      "keywords": "Array of search terms (use empty array [] for all items in repo)",
+      "blacklist": "Optional per-tab array of terms to exclude (overrides global)",
+      "description": "Description shown in the info box above the list"
+    },
+    "global_settings": {
+      "blacklist": "Array of terms to exclude from ALL tabs (unless tab has its own blacklist)"
+    },
+    "examples": {
+      "all_issues_from_repo": "Set keywords to [] to show all open issues/PRs",
+      "filtered_issues": "Set keywords to ['AMDGPU', 'AMDGCN'] to filter by those terms",
+      "exclude_mlir": "Global blacklist ['MLIR'] excludes all MLIR-related items"
+    }
+  },
+  "blacklist": ["MLIR"],
+  "tabs": [
+    {
+      "id": "amd-issues",
+      "label": "AMDGPU Issues",
+      "repo": "llvm/llvm-project",
+      "type": "issues",
+      "keywords": ["AMDGPU", "AMDGCN"],
+      "description": "Open issues containing AMDGPU or AMDGCN in title or labels."
+    },
+    {
+      "id": "spirv-issues",
+      "label": "SPIR-V Issues",
+      "repo": "llvm/llvm-project",
+      "type": "issues",
+      "keywords": ["SPIR-V", "SPIRV"],
+      "description": "Open issues containing SPIR-V or SPIRV in title or labels."
+    },
+    {
+      "id": "amd-prs",
+      "label": "AMDGPU PRs",
+      "repo": "llvm/llvm-project",
+      "type": "prs",
+      "keywords": ["AMDGPU", "AMDGCN"],
+      "description": "Open PRs containing AMDGPU or AMDGCN in title or labels."
+    },
+    {
+      "id": "spirv-prs",
+      "label": "SPIR-V PRs",
+      "repo": "llvm/llvm-project",
+      "type": "prs",
+      "keywords": ["SPIR-V", "SPIRV"],
+      "description": "Open PRs containing SPIR-V or SPIRV in title or labels."
+    },
+    {
+      "id": "llvm-spirv-issues",
+      "label": "LLVM-SPIRV Issues",
+      "repo": "KhronosGroup/SPIRV-LLVM-Translator",
+      "type": "issues",
+      "keywords": [],
+      "description": "Open issues from SPIRV-LLVM-Translator repository."
+    },
+    {
+      "id": "llvm-spirv-prs",
+      "label": "LLVM-SPIRV PRs",
+      "repo": "KhronosGroup/SPIRV-LLVM-Translator",
+      "type": "prs",
+      "keywords": [],
+      "description": "Open PRs from SPIRV-LLVM-Translator repository."
+    }
+  ]
+}

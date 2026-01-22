@@ -24,6 +24,11 @@
             --interesting-bg: #1c3a2d;
             --interesting-border: #238636;
             --not-interesting-opacity: 0.4;
+            --board-open-bg: #1c2128;
+            --board-progress-bg: #1c2128;
+            --board-done-bg: #1c2128;
+            --drop-zone-bg: rgba(56, 139, 253, 0.1);
+            --drop-zone-border: #388bfd;
         }
 
         [data-theme="light"] {
@@ -44,6 +49,11 @@
             --interesting-bg: #dafbe1;
             --interesting-border: #1a7f37;
             --not-interesting-opacity: 0.45;
+            --board-open-bg: #f6f8fa;
+            --board-progress-bg: #f6f8fa;
+            --board-done-bg: #f6f8fa;
+            --drop-zone-bg: rgba(9, 105, 218, 0.1);
+            --drop-zone-border: #0969da;
         }
 
         * {
@@ -104,7 +114,7 @@
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
         }
 
@@ -127,6 +137,22 @@
             background: var(--accent-green);
             border-color: var(--accent-green);
             color: var(--accent-green-text);
+        }
+
+        .tab-btn.board-btn {
+            background: #8957e5;
+            border-color: #8957e5;
+            color: white;
+        }
+
+        .tab-btn.board-btn:hover {
+            background: #7048c5;
+            border-color: #7048c5;
+        }
+
+        .tab-btn.board-btn.active {
+            background: #6e40c9;
+            border-color: #6e40c9;
         }
 
         .tab-content {
@@ -248,9 +274,11 @@
         /* Flag buttons container */
         .flag-buttons {
             display: flex;
+            flex-wrap: wrap;
             gap: 6px;
             flex-shrink: 0;
             margin-left: 10px;
+            max-width: 220px;
         }
 
         .flag-btn {
@@ -285,6 +313,39 @@
         }
 
         .flag-btn svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .add-to-board-btn {
+            width: 100%;
+            padding: 4px 10px;
+            border: 1px solid #8957e5;
+            background: transparent;
+            color: #8957e5;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .add-to-board-btn:hover {
+            background: #8957e5;
+            color: white;
+        }
+
+        .add-to-board-btn.on-board {
+            background: #6e40c9;
+            border-color: #6e40c9;
+            color: white;
+            cursor: default;
+        }
+
+        .add-to-board-btn svg {
             width: 12px;
             height: 12px;
         }
@@ -391,6 +452,207 @@
             color: var(--text-link);
         }
 
+        /* ==================== Board Styles ==================== */
+        .board-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .board-header h2 {
+            color: var(--text-link);
+            font-size: 1.5em;
+        }
+
+        .board-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .board-actions button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .board-actions button:hover {
+            background: var(--border-color);
+        }
+
+        .board-actions button.danger {
+            color: var(--error-text);
+            border-color: var(--error-border);
+        }
+
+        .board-actions button.danger:hover {
+            background: var(--error-bg);
+        }
+
+        .board-actions button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .board-columns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            min-height: 400px;
+        }
+
+        .board-column {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+
+        .board-column-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .board-column-header .column-count {
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .board-column.open .board-column-header {
+            color: #58a6ff;
+        }
+
+        .board-column.in-progress .board-column-header {
+            color: #d29922;
+        }
+
+        .board-column.done .board-column-header {
+            color: #3fb950;
+        }
+
+        .board-column-content {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 200px;
+        }
+
+        .board-column-content.drag-over {
+            background: var(--drop-zone-bg);
+        }
+
+        .board-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+
+        .board-card:active {
+            cursor: grabbing;
+        }
+
+        .board-card.dragging {
+            opacity: 0.5;
+        }
+
+        .board-card:hover {
+            border-color: var(--text-link);
+        }
+
+        .board-card-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .board-card-title a {
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .board-card-title a:hover {
+            color: var(--text-link);
+        }
+
+        .board-card-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .board-card-remove {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .board-card-remove:hover {
+            color: var(--error-text);
+            background: var(--error-bg);
+        }
+
+        .board-card-remove svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .board-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .board-empty svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 900px) {
+            .board-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 600px) {
             .header {
                 flex-direction: column;
@@ -406,6 +668,10 @@
             .flag-btn {
                 font-size: 10px;
                 padding: 3px 6px;
+            }
+            .board-header {
+                flex-direction: column;
+                text-align: center;
             }
         }
     </style>
@@ -424,68 +690,68 @@
         </button>
     </div>
 
-    <div class="tabs">
-        <button class="tab-btn active" data-tab="amd-issues">AMDGPU Issues</button>
-        <button class="tab-btn" data-tab="spirv-issues">SPIR-V Issues</button>
-        <button class="tab-btn" data-tab="amd-prs">AMDGPU PRs</button>
-        <button class="tab-btn" data-tab="spirv-prs">SPIR-V PRs</button>
+    <div class="tabs" id="tabs-container">
+        <!-- Tabs will be generated dynamically -->
     </div>
 
-    <div id="amd-issues" class="tab-content active">
-        <div class="info">
-            <strong>AMDGPU Issues:</strong> Open issues containing AMDGPU or AMDGCN in title or labels.
-        </div>
-        <button class="refresh-btn" onclick="loadAMDIssues(1)">Refresh</button>
-        <div id="amd-issues-content">
-            <div class="loading">
-                <div class="spinner"></div>
-                Loading AMDGPU issues...
+    <div id="tab-contents">
+        <!-- Tab contents will be generated dynamically -->
+    </div>
+
+    <!-- Board View -->
+    <div id="board-view" class="tab-content">
+        <div class="board-container">
+            <div class="board-header">
+                <h2>Project Board</h2>
+                <div class="board-actions">
+                    <button onclick="switchToViewer()">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.78 12.53a.75.75 0 01-1.06 0L2.47 8.28a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 1.06L4.81 7h7.44a.75.75 0 010 1.5H4.81l2.97 2.97a.75.75 0 010 1.06z"></path>
+                        </svg>
+                        Back to Viewer
+                    </button>
+                    <button class="danger" onclick="clearBoard()">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path fill-rule="evenodd" d="M6.5 1.75a.25.25 0 01.25-.25h2.5a.25.25 0 01.25.25V3h-3V1.75zm4.5 0V3h2.25a.75.75 0 010 1.5H2.75a.75.75 0 010-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75zM4.496 6.675a.75.75 0 10-1.492.15l.66 6.6A1.75 1.75 0 005.405 15h5.19c.9 0 1.652-.681 1.741-1.576l.66-6.6a.75.75 0 00-1.492-.149l-.66 6.6a.25.25 0 01-.249.225h-5.19a.25.25 0 01-.249-.225l-.66-6.6z"></path>
+                        </svg>
+                        Clear Board
+                    </button>
+                </div>
             </div>
-        </div>
-    </div>
-
-    <div id="spirv-issues" class="tab-content">
-        <div class="info">
-            <strong>SPIR-V Issues:</strong> Open issues containing SPIR-V or SPIRV in title or labels.
-        </div>
-        <button class="refresh-btn" onclick="loadSPIRVIssues(1)">Refresh</button>
-        <div id="spirv-issues-content">
-            <div class="loading">
-                <div class="spinner"></div>
-                Loading SPIR-V issues...
-            </div>
-        </div>
-    </div>
-
-    <div id="amd-prs" class="tab-content">
-        <div class="info">
-            <strong>AMDGPU Pull Requests:</strong> Open PRs containing AMDGPU or AMDGCN in title or labels.
-        </div>
-        <button class="refresh-btn" onclick="loadAMDPRs(1)">Refresh</button>
-        <div id="amd-prs-content">
-            <div class="loading">
-                <div class="spinner"></div>
-                Loading AMDGPU pull requests...
-            </div>
-        </div>
-    </div>
-
-    <div id="spirv-prs" class="tab-content">
-        <div class="info">
-            <strong>SPIR-V Pull Requests:</strong> Open PRs containing SPIR-V or SPIRV in title or labels.
-        </div>
-        <button class="refresh-btn" onclick="loadSPIRVPRs(1)">Refresh</button>
-        <div id="spirv-prs-content">
-            <div class="loading">
-                <div class="spinner"></div>
-                Loading SPIR-V pull requests...
+            <div class="board-columns" id="board-columns">
+                <div class="board-column open" data-column="open">
+                    <div class="board-column-header">
+                        <span>Open</span>
+                        <span class="column-count" id="open-count">0</span>
+                    </div>
+                    <div class="board-column-content" id="board-open"></div>
+                </div>
+                <div class="board-column in-progress" data-column="inProgress">
+                    <div class="board-column-header">
+                        <span>In Progress</span>
+                        <span class="column-count" id="inProgress-count">0</span>
+                    </div>
+                    <div class="board-column-content" id="board-inProgress"></div>
+                </div>
+                <div class="board-column done" data-column="done">
+                    <div class="board-column-header">
+                        <span>Done</span>
+                        <span class="column-count" id="done-count">0</span>
+                    </div>
+                    <div class="board-column-content" id="board-done"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // ==================== Configuration ====================
+        let appConfig = { tabs: [] };
+        let currentView = 'viewer'; // 'viewer' or 'board'
+
         // ==================== Local Storage for Flags ====================
         const STORAGE_KEY = 'llvm-issues-flags';
+        const BOARD_STORAGE_KEY = 'llvm-issues-board';
 
         function getFlags() {
             try {
@@ -505,35 +771,38 @@
             }
         }
 
-        function getItemFlag(itemNumber) {
-            const flags = getFlags();
-            return flags[itemNumber] || null; // null, 'interesting', or 'not-interesting'
+        // Use item URL as unique key (issue numbers can collide across repos)
+        function getItemKey(item) {
+            return item.html_url;
         }
 
-        function setItemFlag(itemNumber, flag) {
+        function getItemFlag(itemKey) {
+            const flags = getFlags();
+            return flags[itemKey] || null;
+        }
+
+        function setItemFlag(itemKey, flag) {
             const flags = getFlags();
             if (flag === null) {
-                delete flags[itemNumber];
+                delete flags[itemKey];
             } else {
-                flags[itemNumber] = flag;
+                flags[itemKey] = flag;
             }
             saveFlags(flags);
-            updateCardVisual(itemNumber, flag);
+            updateCardVisual(itemKey, flag);
         }
 
-        function toggleFlag(itemNumber, flagType) {
-            const currentFlag = getItemFlag(itemNumber);
+        function toggleFlag(itemKey, flagType) {
+            const currentFlag = getItemFlag(itemKey);
             if (currentFlag === flagType) {
-                // Toggle off
-                setItemFlag(itemNumber, null);
+                setItemFlag(itemKey, null);
             } else {
-                // Set new flag
-                setItemFlag(itemNumber, flagType);
+                setItemFlag(itemKey, flagType);
             }
         }
 
-        function updateCardVisual(itemNumber, flag) {
-            const card = document.querySelector(`[data-item-number="${itemNumber}"]`);
+        function updateCardVisual(itemKey, flag) {
+            const card = document.querySelector(`[data-item-key="${CSS.escape(itemKey)}"]`);
             if (!card) return;
 
             card.classList.remove('interesting', 'not-interesting');
@@ -543,7 +812,6 @@
                 card.classList.add('not-interesting');
             }
 
-            // Update button states
             const interestingBtn = card.querySelector('.flag-btn-interesting');
             const notInterestingBtn = card.querySelector('.flag-btn-not-interesting');
 
@@ -552,6 +820,109 @@
             }
             if (notInterestingBtn) {
                 notInterestingBtn.classList.toggle('active-not-interesting', flag === 'not-interesting');
+            }
+        }
+
+        // ==================== Board Storage ====================
+        function getBoard() {
+            try {
+                const stored = localStorage.getItem(BOARD_STORAGE_KEY);
+                return stored ? JSON.parse(stored) : { open: [], inProgress: [], done: [] };
+            } catch (e) {
+                console.error('Error reading board from localStorage:', e);
+                return { open: [], inProgress: [], done: [] };
+            }
+        }
+
+        function saveBoard(board) {
+            try {
+                localStorage.setItem(BOARD_STORAGE_KEY, JSON.stringify(board));
+            } catch (e) {
+                console.error('Error saving board to localStorage:', e);
+            }
+        }
+
+        function isOnBoard(itemUrl) {
+            const board = getBoard();
+            const allItems = [...board.open, ...board.inProgress, ...board.done];
+            return allItems.some(i => i.html_url === itemUrl);
+        }
+
+        function addToBoard(item) {
+            const board = getBoard();
+            // Check if item already exists in any column
+            if (isOnBoard(item.html_url)) {
+                return false; // Already on board
+            }
+            board.open.push(item);
+            saveBoard(board);
+            renderBoard();
+            // Update the button state in viewer
+            updateAddToBoardButton(item.html_url, true);
+            return true;
+        }
+
+        function addToBoardFromViewer(button) {
+            const encoded = button.getAttribute('data-item');
+            if (encoded) {
+                try {
+                    const itemJson = decodeURIComponent(atob(encoded));
+                    const item = JSON.parse(itemJson);
+                    addToBoard(item);
+                } catch (e) {
+                    console.error('Error parsing item data:', e);
+                }
+            }
+        }
+
+        function updateAddToBoardButton(itemUrl, onBoard) {
+            const btn = document.querySelector(`[data-board-url="${CSS.escape(itemUrl)}"]`);
+            if (btn) {
+                if (onBoard) {
+                    btn.classList.add('on-board');
+                    btn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg><span>On Board</span>`;
+                } else {
+                    btn.classList.remove('on-board');
+                    btn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.75 2a.75.75 0 01.75.75V7h4.25a.75.75 0 010 1.5H8.5v4.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H7V2.75A.75.75 0 017.75 2z"></path></svg><span>Add to Board</span>`;
+                }
+            }
+        }
+
+        function removeFromBoard(itemUrl) {
+            const board = getBoard();
+            board.open = board.open.filter(i => i.html_url !== itemUrl);
+            board.inProgress = board.inProgress.filter(i => i.html_url !== itemUrl);
+            board.done = board.done.filter(i => i.html_url !== itemUrl);
+            saveBoard(board);
+            renderBoard();
+            // Update the button state in viewer if visible
+            updateAddToBoardButton(itemUrl, false);
+        }
+
+        function moveOnBoard(itemUrl, targetColumn) {
+            const board = getBoard();
+            let item = null;
+
+            // Find and remove from current column
+            for (const col of ['open', 'inProgress', 'done']) {
+                const idx = board[col].findIndex(i => i.html_url === itemUrl);
+                if (idx !== -1) {
+                    item = board[col].splice(idx, 1)[0];
+                    break;
+                }
+            }
+
+            if (item) {
+                board[targetColumn].push(item);
+                saveBoard(board);
+                renderBoard();
+            }
+        }
+
+        function clearBoard() {
+            if (confirm('Are you sure you want to clear the entire board? This cannot be undone.')) {
+                saveBoard({ open: [], inProgress: [], done: [] });
+                renderBoard();
             }
         }
 
@@ -593,16 +964,6 @@
         // Initialize theme
         setTheme(getPreferredTheme());
 
-        // ==================== Tab switching ====================
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById(btn.dataset.tab).classList.add('active');
-            });
-        });
-
         // ==================== SVG icons ====================
         const issueIcon = `<svg class="issue-icon open" viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path>
@@ -636,8 +997,178 @@
             return div.innerHTML;
         }
 
+        // ==================== View Switching ====================
+        function switchToBoard() {
+            currentView = 'board';
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('[data-tab="board"]').classList.add('active');
+            document.getElementById('board-view').classList.add('active');
+            renderBoard();
+        }
+
+        function switchToViewer() {
+            currentView = 'viewer';
+            const firstTab = appConfig.tabs[0];
+            if (firstTab) {
+                switchTab(firstTab.id);
+            }
+        }
+
+        // ==================== Dynamic UI Generation ====================
+        function generateTabs(config) {
+            const tabsContainer = document.getElementById('tabs-container');
+            const tabContents = document.getElementById('tab-contents');
+
+            tabsContainer.innerHTML = '';
+            tabContents.innerHTML = '';
+
+            config.tabs.forEach((tab, index) => {
+                const tabBtn = document.createElement('button');
+                tabBtn.className = 'tab-btn' + (index === 0 ? ' active' : '');
+                tabBtn.setAttribute('data-tab', tab.id);
+                tabBtn.textContent = tab.label;
+                tabBtn.addEventListener('click', () => {
+                    currentView = 'viewer';
+                    switchTab(tab.id);
+                    document.getElementById('board-view').classList.remove('active');
+                });
+                tabsContainer.appendChild(tabBtn);
+
+                const tabContent = document.createElement('div');
+                tabContent.id = tab.id;
+                tabContent.className = 'tab-content' + (index === 0 ? ' active' : '');
+
+                const isPR = tab.type === 'prs';
+
+                tabContent.innerHTML = `
+                    <div class="info">
+                        <strong>${escapeHtml(tab.label)}:</strong> ${escapeHtml(tab.description)}
+                    </div>
+                    <button class="refresh-btn" onclick="loadTabData('${tab.id}', 1)">Refresh</button>
+                    <div id="${tab.id}-content">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Loading ${escapeHtml(tab.label.toLowerCase())}...
+                        </div>
+                    </div>
+                `;
+
+                tabContents.appendChild(tabContent);
+            });
+
+            // Add Board button at the end
+            const boardBtn = document.createElement('button');
+            boardBtn.className = 'tab-btn board-btn';
+            boardBtn.setAttribute('data-tab', 'board');
+            boardBtn.textContent = 'Board';
+            boardBtn.addEventListener('click', switchToBoard);
+            tabsContainer.appendChild(boardBtn);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            const tabBtn = document.querySelector(`[data-tab="${tabId}"]`);
+            const tabContent = document.getElementById(tabId);
+
+            if (tabBtn) tabBtn.classList.add('active');
+            if (tabContent) tabContent.classList.add('active');
+        }
+
+        // ==================== Board Rendering ====================
+        function renderBoard() {
+            const board = getBoard();
+
+            ['open', 'inProgress', 'done'].forEach(column => {
+                const container = document.getElementById(`board-${column}`);
+                const countEl = document.getElementById(`${column}-count`);
+                const items = board[column];
+
+                countEl.textContent = items.length;
+
+                if (items.length === 0) {
+                    container.innerHTML = `
+                        <div class="board-empty">
+                            <svg viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0114.25 16H1.75A1.75 1.75 0 010 14.25V1.75zM1.75 1.5a.25.25 0 00-.25.25v12.5c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25V1.75a.25.25 0 00-.25-.25H1.75z"></path>
+                            </svg>
+                            <div>No items</div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = items.map(item => {
+                        const isPR = item.html_url.includes('/pull/');
+                        const icon = isPR ? 'PR' : 'Issue';
+                        const number = item.number || item.html_url.split('/').pop();
+
+                        return `
+                            <div class="board-card" draggable="true" data-url="${escapeHtml(item.html_url)}">
+                                <div class="board-card-title">
+                                    <a href="${item.html_url}" target="_blank" rel="noopener noreferrer">
+                                        ${escapeHtml(item.title)}
+                                    </a>
+                                </div>
+                                <div class="board-card-meta">
+                                    <span>${icon} #${number}</span>
+                                    <button class="board-card-remove" onclick="removeFromBoard('${escapeHtml(item.html_url)}')" title="Remove from board">
+                                        ${xIcon}
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // Add drag events to board cards
+                container.querySelectorAll('.board-card').forEach(card => {
+                    card.addEventListener('dragstart', handleBoardCardDragStart);
+                    card.addEventListener('dragend', handleBoardCardDragEnd);
+                });
+            });
+
+            // Setup column drop zones
+            document.querySelectorAll('.board-column-content').forEach(col => {
+                col.addEventListener('dragover', handleColumnDragOver);
+                col.addEventListener('dragleave', handleColumnDragLeave);
+                col.addEventListener('drop', handleColumnDrop);
+            });
+        }
+
+        // ==================== Drag and Drop for Board Cards ====================
+        function handleBoardCardDragStart(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.url);
+        }
+
+        function handleBoardCardDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleColumnDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleColumnDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleColumnDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+
+            const url = e.dataTransfer.getData('text/plain');
+            const targetColumn = e.currentTarget.parentElement.dataset.column;
+
+            if (url) {
+                moveOnBoard(url, targetColumn);
+            }
+        }
+
         // ==================== Rendering ====================
-        function renderItems(data, containerId, isPR, loadFunction) {
+        function renderItems(data, containerId, isPR, tabId) {
             const container = document.getElementById(containerId);
             const items = data.items;
             const totalCount = data.total_count;
@@ -649,6 +1180,20 @@
                 return;
             }
 
+            // Sort items: interesting first, then normal, then not-interesting
+            const sortedItems = [...items].sort((a, b) => {
+                const flagA = getItemFlag(a.html_url);
+                const flagB = getItemFlag(b.html_url);
+
+                const getPriority = (flag) => {
+                    if (flag === 'interesting') return 2;
+                    if (flag === 'not-interesting') return 0;
+                    return 1;
+                };
+
+                return getPriority(flagB) - getPriority(flagA);
+            });
+
             const icon = isPR ? prIcon : issueIcon;
             const itemType = isPR ? 'pull requests' : 'issues';
             const startItem = (currentPage - 1) * 100 + 1;
@@ -657,7 +1202,8 @@
             let html = `<div class="count">Showing <strong>${startItem}-${endItem}</strong> of <strong>${totalCount}</strong> ${itemType}</div>`;
             html += '<div class="issue-list">';
 
-            items.forEach(item => {
+            sortedItems.forEach(item => {
+                const itemKey = item.html_url;
                 const labels = item.labels.map(label =>
                     `<span class="label" style="background-color: #${label.color}; color: ${getContrastColor(label.color)}">${escapeHtml(label.name)}</span>`
                 ).join('');
@@ -668,14 +1214,31 @@
                     day: 'numeric'
                 });
 
-                const currentFlag = getItemFlag(item.number);
+                const currentFlag = getItemFlag(itemKey);
                 const cardClass = currentFlag === 'interesting' ? 'interesting' :
                                   currentFlag === 'not-interesting' ? 'not-interesting' : '';
                 const interestingActive = currentFlag === 'interesting' ? 'active-interesting' : '';
                 const notInterestingActive = currentFlag === 'not-interesting' ? 'active-not-interesting' : '';
 
+                // Store item data as JSON for adding to board
+                const itemData = {
+                    html_url: item.html_url,
+                    title: item.title,
+                    number: item.number,
+                    user: item.user ? { login: item.user.login } : null,
+                    labels: item.labels
+                };
+                // Encode for safe HTML attribute storage
+                const itemDataAttr = btoa(encodeURIComponent(JSON.stringify(itemData)));
+
+                const onBoard = isOnBoard(itemKey);
+                const boardBtnClass = onBoard ? 'on-board' : '';
+                const boardBtnContent = onBoard
+                    ? `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg><span>On Board</span>`
+                    : `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.75 2a.75.75 0 01.75.75V7h4.25a.75.75 0 010 1.5H8.5v4.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H7V2.75A.75.75 0 017.75 2z"></path></svg><span>Add to Board</span>`;
+
                 html += `
-                    <div class="issue-card ${cardClass}" data-item-number="${item.number}">
+                    <div class="issue-card ${cardClass}" data-item-key="${escapeHtml(itemKey)}">
                         <div class="issue-header">
                             ${icon}
                             <div class="issue-title">
@@ -686,16 +1249,23 @@
                             </div>
                             <div class="flag-buttons">
                                 <button class="flag-btn flag-btn-interesting ${interestingActive}"
-                                        onclick="toggleFlag(${item.number}, 'interesting')"
+                                        onclick="toggleFlag('${escapeHtml(itemKey)}', 'interesting')"
                                         title="Mark as interesting">
                                     ${starIcon}
                                     <span>Interesting</span>
                                 </button>
                                 <button class="flag-btn flag-btn-not-interesting ${notInterestingActive}"
-                                        onclick="toggleFlag(${item.number}, 'not-interesting')"
+                                        onclick="toggleFlag('${escapeHtml(itemKey)}', 'not-interesting')"
                                         title="Mark as not interesting">
                                     ${xIcon}
                                     <span>Not Interesting</span>
+                                </button>
+                                <button class="add-to-board-btn ${boardBtnClass}"
+                                        data-board-url="${escapeHtml(itemKey)}"
+                                        data-item="${itemDataAttr}"
+                                        onclick="addToBoardFromViewer(this)"
+                                        title="${onBoard ? 'Already on board' : 'Add to board'}">
+                                    ${boardBtnContent}
                                 </button>
                             </div>
                         </div>
@@ -710,15 +1280,14 @@
 
             html += '</div>';
 
-            // Add pagination if more than one page
             if (totalPages > 1) {
                 html += `
                     <div class="pagination">
-                        <button onclick="${loadFunction}(1)" ${currentPage === 1 ? 'disabled' : ''}>First</button>
-                        <button onclick="${loadFunction}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                        <button onclick="loadTabData('${tabId}', 1)" ${currentPage === 1 ? 'disabled' : ''}>First</button>
+                        <button onclick="loadTabData('${tabId}', ${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
                         <span class="page-info">Page <strong>${currentPage}</strong> of <strong>${totalPages}</strong></span>
-                        <button onclick="${loadFunction}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
-                        <button onclick="${loadFunction}(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>Last</button>
+                        <button onclick="loadTabData('${tabId}', ${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+                        <button onclick="loadTabData('${tabId}', ${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>Last</button>
                     </div>
                 `;
             }
@@ -737,87 +1306,59 @@
         }
 
         // ==================== Data loading functions ====================
-        async function loadAMDIssues(page = 1) {
-            const container = document.getElementById('amd-issues-content');
-            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading AMDGPU issues...</div>';
+        async function loadTabData(tabId, page = 1) {
+            const tab = appConfig.tabs.find(t => t.id === tabId);
+            if (!tab) {
+                console.error(`Tab ${tabId} not found in config`);
+                return;
+            }
+
+            const containerId = `${tabId}-content`;
+            const container = document.getElementById(containerId);
+            const isPR = tab.type === 'prs';
+
+            container.innerHTML = `<div class="loading"><div class="spinner"></div>Loading ${tab.label.toLowerCase()}...</div>`;
 
             try {
-                const response = await fetch(`/api/amd-issues?page=${page}`);
+                const response = await fetch(`/api/tab/${tabId}?page=${page}`);
                 const data = await response.json();
 
                 if (data.error) {
-                    showError('amd-issues-content', data.error);
+                    showError(containerId, data.error);
                     return;
                 }
 
-                renderItems(data, 'amd-issues-content', false, 'loadAMDIssues');
+                renderItems(data, containerId, isPR, tabId);
             } catch (error) {
-                showError('amd-issues-content', error.message);
+                showError(containerId, error.message);
             }
         }
 
-        async function loadSPIRVIssues(page = 1) {
-            const container = document.getElementById('spirv-issues-content');
-            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading SPIR-V issues...</div>';
-
+        // ==================== Initialization ====================
+        async function initApp() {
             try {
-                const response = await fetch(`/api/spirv-issues?page=${page}`);
-                const data = await response.json();
+                const response = await fetch('/api/config');
+                appConfig = await response.json();
 
-                if (data.error) {
-                    showError('spirv-issues-content', data.error);
-                    return;
-                }
+                generateTabs(appConfig);
 
-                renderItems(data, 'spirv-issues-content', false, 'loadSPIRVIssues');
+                appConfig.tabs.forEach(tab => {
+                    loadTabData(tab.id);
+                });
+
+                renderBoard();
             } catch (error) {
-                showError('spirv-issues-content', error.message);
+                console.error('Error initializing app:', error);
+                document.getElementById('tab-contents').innerHTML = `
+                    <div class="error">
+                        <strong>Error loading configuration:</strong> ${escapeHtml(error.message)}
+                    </div>
+                `;
             }
         }
 
-        async function loadAMDPRs(page = 1) {
-            const container = document.getElementById('amd-prs-content');
-            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading AMDGPU pull requests...</div>';
-
-            try {
-                const response = await fetch(`/api/amd-prs?page=${page}`);
-                const data = await response.json();
-
-                if (data.error) {
-                    showError('amd-prs-content', data.error);
-                    return;
-                }
-
-                renderItems(data, 'amd-prs-content', true, 'loadAMDPRs');
-            } catch (error) {
-                showError('amd-prs-content', error.message);
-            }
-        }
-
-        async function loadSPIRVPRs(page = 1) {
-            const container = document.getElementById('spirv-prs-content');
-            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading SPIR-V pull requests...</div>';
-
-            try {
-                const response = await fetch(`/api/spirv-prs?page=${page}`);
-                const data = await response.json();
-
-                if (data.error) {
-                    showError('spirv-prs-content', data.error);
-                    return;
-                }
-
-                renderItems(data, 'spirv-prs-content', true, 'loadSPIRVPRs');
-            } catch (error) {
-                showError('spirv-prs-content', error.message);
-            }
-        }
-
-        // Load initial data
-        loadAMDIssues();
-        loadSPIRVIssues();
-        loadAMDPRs();
-        loadSPIRVPRs();
+        // Start the app
+        initApp();
     </script>
 </body>
 </html>
